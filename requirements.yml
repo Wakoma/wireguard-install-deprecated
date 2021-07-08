@@ -1,0 +1,8 @@
+---
+# To install: ansible-galaxy collection install -r requirements.yml
+
+collections:
+  - name: markuman.nextcloud
+    version: 3.0.2
+    source: https://galaxy.ansible.com
+

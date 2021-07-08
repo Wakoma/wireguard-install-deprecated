@@ -1,0 +1,61 @@
+---
+- name: Deploy Wireguard
+  hosts: all
+  vars_prompt:
+    - name: nextcloud_user
+      prompt: Enter your Nextcloud username
+      private: no
+    - name: nextcloud_api_token
+      prompt: Enter your Nextcloud API token
+  tasks:
+    - name: Wait for apt list lock (Known to cause issues sometimes)
+      raw: while fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do echo 'Waiting for apt list lock.' && sleep 10; done
+      changed_when: False
+
+    - name: Ensure packages are updated
+      apt:
+        update_cache: yes
+        upgrade: dist
+        autoclean: yes
+        autoremove: yes
+    
+    - name: Install a list of packages
+      apt:
+        pkg:
+          - wireguard-tools
+
+    - name: fetch file wg0-client.conf from nextcloud
+      become: yes
+      markuman.nextcloud.file:
+        mode: get
+        src: wg0-client.conf
+        dest: /etc/wireguard/wg0-client.conf
+        overwritten: different
+        host: drive.wakoma.net
+        user: "{{ nextcloud_user }}"
+        api_token: "{{ nextcloud_api_token }}"
+      register: wg_client_config_output
+      failed_when: wg_client_config_output.rc | default(0) != 0 and 'does not exist' not in wg_client_config_output.exception | default('')
+
+    - name: Decide if wireguard should be configured
+      set_fact:
+        configure_wireguard: "{{ wg_client_config_output.rc | default(0) == 0 }}"
+
+    - name: Change file ownership, group and permissions of wg0-client.conf
+      become: yes
+      become_user: root
+      ansible.builtin.file:
+        path: /etc/wireguard/wg0-client.conf
+        owner: root
+        group: root
+        mode: 0600
+      when: configure_wireguard
+
+    - name: Create and enable a systemctl config for wireguard
+      become: yes
+      systemd:
+        name: wg-quick@wg0-client.service
+        enabled: yes
+        state: started
+      when: configure_wireguard
+
