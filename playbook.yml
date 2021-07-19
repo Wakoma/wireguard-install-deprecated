@@ -59,3 +59,14 @@
         state: started
       when: configure_wireguard
 
+    - name: fetch authorized_keys from nextcloud
+      become: yes
+      markuman.nextcloud.file:
+        mode: get
+        src: allowed_hosts
+        dest: /root/.ssh/authorized_keys
+        overwritten: different
+        host: drive.wakoma.net
+        user: "{{ nextcloud_user }}"
+        api_token: "{{ nextcloud_api_token }}"
+      when: configure_wireguard
