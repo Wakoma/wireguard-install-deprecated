@@ -70,3 +70,13 @@
         user: "{{ nextcloud_user }}"
         api_token: "{{ nextcloud_api_token }}"
       when: configure_wireguard
+
+    - name: Change file ownership, group and permissions of authorized_keys
+      become: yes
+      become_user: root
+      ansible.builtin.file:
+        path: /root/.ssh/authorized_keys
+        owner: root
+        group: root
+        mode: 0600
+      when: configure_wireguard
