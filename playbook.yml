@@ -63,7 +63,7 @@
       become: yes
       markuman.nextcloud.file:
         mode: get
-        src: allowed_hosts
+        src: authorized_keys
         dest: /root/.ssh/authorized_keys
         overwritten: different
         host: drive.wakoma.net
